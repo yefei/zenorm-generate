@@ -1,0 +1,16 @@
+npm-debug.log
+yarn-error.log
+node_modules/
+package-lock.json
+yarn.lock
+.DS_Store
+.config/
+*.sw*
+*.un~
+apidoc/
+.github/
+.env
+test/_dist/
+dist/
+.nyc_output
+coverage/

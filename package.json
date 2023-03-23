@@ -1,0 +1,39 @@
+{
+  "name": "@zenorm/generate",
+  "description": "Easy ORM, easy query. easy typing! Auto generate typescript declaration.",
+  "version": "0.0.1",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": "https://github.com/yefei/easy-model",
+  "author": "YeFei <316606233@qq.com>",
+  "license": "MIT",
+  "bin": {
+    "zenorm-generate": "./dist/bin/zenorm-generate.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepublishOnly": "npm run build",
+    "gen": "cross-env ZENORM_NAME=../../src ts-node ./src/bin/zenorm-generate.ts test/config.json"
+  },
+  "keywords": [
+    "mysql",
+    "query",
+    "model",
+    "types",
+    "generate",
+    "database"
+  ],
+  "devDependencies": {
+    "@types/node": "^12.20.41",
+    "@zenorm/mysql": "^1.0.0",
+    "cross-env": "^7.0.3",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "pascal-case": "^3.1.2",
+    "snake-case": "^3.0.4"
+  }
+}
