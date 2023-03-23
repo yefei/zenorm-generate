@@ -3,27 +3,9 @@ import * as path from 'path';
 import { pascalCase } from 'pascal-case';
 import { snakeCase } from 'snake-case';
 import { GenerateConfig, TabelDescribe } from './types';
+import { checkFileDir, currentDatetime, cwdPath, fileExists, notExistsPut } from './utils';
 
 const zenormName = process.env.ZENORM_NAME || 'zenorm';
-
-function cwdPath(p: string): string {
-  if (p.startsWith('./')) {
-    return path.join(process.cwd(), p.slice(2));
-  }
-  return p;
-}
-
-function checkFileDir(dir: string) {
-  return fs.mkdir(dir, { recursive: true });
-}
-
-function fileExists(f: string) {
-  return fs.access(f).then(() => true, e => false);
-}
-
-function datetime() {
-  return new Date().toLocaleString();
-}
 
 export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: GenerateConfig) {
   console.log('generate models...');
@@ -42,7 +24,7 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
   const remark = [
     '// zenorm 自动生成文件',
     '// 请不要修改此文件，因为此文件在每次重新生成数据库结构时会被覆盖',
-    `// create at: ${datetime()}`,
+    `// create at: ${currentDatetime()}`,
     `// create by: ${process.env.USER || process.env.USERNAME || '-'}@${process.env.COMPUTERNAME || '-'}`,
     `// database: ${config.database}`,
   ];
@@ -138,24 +120,26 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
   });
 
   // Repositories
-  repositories.push(
-    `export class Repositories {`,
-    `  constructor(private _query: QueryParam) {}`,
-    ...models.map(([name, className]) => `  get ${className}Repository() { return ${className}.query(this._query); }`),
-    `}`,
-    '',
-  );
+  if (config.generateRepositories) {
+    repositories.push(
+      `export class Repositories {`,
+      `  constructor(private _query: QueryParam) {}`,
+      ...models.map(([name, className]) => `  get ${className}Repository() { return ${className}.query(this._query); }`),
+      `}`,
+      '',
+    );
 
-  // 添加 Repositories 到目标模块中
-  if (config.declareRepositoriesToModules) {
-    for (const mod of config.declareRepositoriesToModules) {
-      const _m = mod.split('.');
-      repositories.push(`declare module '${_m[0]}' {`);
-      repositories.push(`  interface ${_m.slice(1, -1).join('.')} {`);
-      repositories.push(`    ${_m[_m.length - 1]}: Repositories;`);
-      repositories.push(`  }`);
-      repositories.push(`}`);
-      repositories.push(``);
+    // 添加 Repositories 到目标模块中
+    if (config.declareRepositoriesToModules) {
+      for (const mod of config.declareRepositoriesToModules) {
+        const _m = mod.split('.');
+        repositories.push(`declare module '${_m[0]}' {`);
+        repositories.push(`  interface ${_m.slice(1, -1).join('.')} {`);
+        repositories.push(`    ${_m[_m.length - 1]}: Repositories;`);
+        repositories.push(`  }`);
+        repositories.push(`}`);
+        repositories.push(``);
+      }
     }
   }
 
@@ -164,27 +148,19 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
   await fs.writeFile(repositoriesFilename, repositories.join('\n'));
 
   // 生成 global.ts
-  await notExistsPut(path.join(outputDir, config.globalFilename + '.ts'), () => {
+  const globalFilename = path.join(outputDir, config.globalFilename + '.ts');
+  await notExistsPut(globalFilename, () => {
+    console.log(`write file: ${globalFilename}`);
     return 'export default class Global {}';
   });
 
   // 生成 index.ts
-  await notExistsPut(path.join(outputDir, 'index.ts'), () => {
+  const indexFilename = path.join(outputDir, 'index.ts');
+  await notExistsPut(indexFilename, () => {
+    console.log(`write file: ${indexFilename}`);
     return [
       `export * from './${config.tablesFilename}';`,
       `export * from './${config.repositoriesFilename}';`,
     ].join('\n');
   });
-}
-
-/**
- * 文件不存在则创建并写入内容
- * @param filename 
- * @param getContent 
- */
-async function notExistsPut(filename: string, getContent: () => string) {
-  if (!await fileExists(filename)) {
-    console.log(`write file: ${filename}`);
-    await fs.writeFile(filename, getContent());
-  }
 }

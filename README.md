@@ -1,3 +1,7 @@
 # ZenORM Generate
 
-[ZenORM](https://www.npmjs.com/package/zenorm) 表结构代码生成工具
+[ZenORM](https://www.npmjs.com/package/zenorm) Table Structure Code Generation Tool
+
+[Generate Config](docs/interfaces/GenerateConfig.md)
+
+[API Documents](docs/modules.md)
