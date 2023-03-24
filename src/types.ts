@@ -102,11 +102,12 @@ export interface GenerateConfig {
 
   /**
    * 绑定 Query 对象
-   * - 设置 query 源，格式: 'QueryParam@filename' 例如: 'pool@../db'
-   * - 生成模型的静态 Repository 方法
-   * - 对于多租户数据库系统不适用
+   * - repositories 文件生成 bindQuery(query: QueryParam) 方法用于设置模型的 Query 源
+   * - 并生成模型的静态 Repository 方法
+   * - 对于多租户多数据库系统不适用
+   * @default false
    */
-  bindQuery?: string;
+  bindQuery?: boolean;
 
   /**
    * 是否生成 Repositories 类

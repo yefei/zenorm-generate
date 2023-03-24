@@ -107,14 +107,21 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
 
   const repositories: string[] = [
     ...remark,
-    `import { ${config.generateRepositories ? `QueryParam, ` : ''}createRepositoryQuery } from '${zenormName}';`,
+    `import { ${
+      (config.generateRepositories || config.bindQuery) ? `QueryParam, ` : ''
+    }createRepositoryQuery } from '${zenormName}';`,
     ...models.map(({ name, className }) => `import _${className} from './${name}';`),
   ];
 
   // 绑定静态 Query
   if (config.bindQuery) {
-    const [v, p] = config.bindQuery.split('@', 2);
-    repositories.push(`import { ${v} as _query } from '${p}';`);
+    repositories.push(
+      '',
+      `let _bindQuery: QueryParam;`,
+      `function _query() { return typeof _bindQuery === 'function' ? _bindQuery() : _bindQuery }`,
+      `/** 绑定模型 Query 源 */`,
+      `export function bindQuery(query: QueryParam) { _bindQuery = query; }`,
+    );
   }
 
   // static

@@ -17,7 +17,7 @@
 | tablesFilename | `string` | `'_tables'` | 生成数据库表结构文件名
 | repositoriesFilename | `string` | `'_repositories'` | 生成 repositories 文件名
 | globalFilename | `string` | 无 | 全局文件名 - 如果设置所有表将继承于此 - 例如设置为：'_global' - 如果文件不存在则自动创建
-| bindQuery | `string` | 无 | 绑定 Query 对象 - 设置 query 源，格式: 'QueryParam@filename' 例如: 'pool@../db'
+| bindQuery | `boolean` | `false` | repositories 文件生成 bindQuery(query: QueryParam) 方法用于设置模型的 Query 源 - 并生成模型的静态 Repository 方法
 | generateRepositories | `boolean` | `false` | 是否生成 Repositories 类 - 通常用于多租户模式做数据库前置绑定 `Query` 对象
 | declareRepositoriesToModules | `string[]` | 无 | 是否需将 Repositories 实例定义到目标模块中 - 例如: `["@zenweb/core.Core.repositories"]`
 | filter | `string` | 无 | 表过滤规则正则

@@ -5,5 +5,5 @@
   "user": "root",
   "password": "",
   "outputDir": "./model/",
-  "bindQuery": "pool@../db"
+  "bindQuery": true
 }

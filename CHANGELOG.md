@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.2.0] - 2023-3-24
+- update: bindQuery 改为函数形式
+
 ## [1.1.1] - 2023-3-24
 - fix: 生成格式少个空格和空行
 - update: bindQuery 增加 count 和 exists
