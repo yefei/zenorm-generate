@@ -94,14 +94,23 @@ export interface GenerateConfig {
 
   /**
    * 全局文件名
-   * - 如果不存在生成
-   * @default '_global'
+   * - 例如设置为：'_global'
+   * - 如果设置所有表将继承于此
+   * - 如果文件不存在则自动创建
    */
   globalFilename?: string;
 
   /**
+   * 绑定 Query 对象
+   * - 设置 query 源，格式: 'QueryParam@filename' 例如: 'pool@../db'
+   * - 生成模型的静态 Repository 方法
+   * - 对于多租户数据库系统不适用
+   */
+  bindQuery?: string;
+
+  /**
    * 是否生成 Repositories 类
-   * - 通常用于多租户环境需要做模型前置绑定 `Query` 对象
+   * - 通常用于多租户模式做数据库前置绑定 `Query` 对象
    * @default false
    */
   generateRepositories?: boolean;
@@ -109,7 +118,7 @@ export interface GenerateConfig {
   /**
    * 是否需将 Repositories 实例定义到目标模块中
    * - 例如: `["@zenweb/core.Core.repositories"]`
-   * - 需要: `generateRepositories: true`
+   * - 需要启用: `generateRepositories`
    * @default undefined
    */
   declareRepositoriesToModules?: string[];

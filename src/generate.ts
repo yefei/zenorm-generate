@@ -3,7 +3,7 @@ import * as path from 'path';
 import { pascalCase } from 'pascal-case';
 import { snakeCase } from 'snake-case';
 import { GenerateConfig, TabelDescribe } from './types';
-import { checkFileDir, currentDatetime, cwdPath, fileExists, notExistsPut } from './utils';
+import { checkFileDir, currentDatetime, cwdPath, notExistsPut } from './utils';
 
 const zenormName = process.env.ZENORM_NAME || 'zenorm';
 
@@ -13,7 +13,6 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
     outputDir: './src/model',
     tablesFilename: '_tables',
     repositoriesFilename: '_repositories',
-    globalFilename: '_global',
   }, cfg);
 
   const outputDir = cwdPath(config.outputDir);
@@ -29,12 +28,16 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
     `// database: ${config.database}`,
   ];
 
-  const structs: string[] = [
+  const structs: (string | null)[] = [
     ...remark,
-    `import _Global from './${config.globalFilename}';`,
+    config.globalFilename ? `import _Global from './${config.globalFilename}';` : null,
     '',
   ];
-  const models: string[][] = [];
+  const models: {
+    name: string,
+    className: string,
+    pkType: string,
+  }[] = [];
   const filterRegExp = config.filter ? new RegExp(config.filter) : null;
   const includeRegExp = config.include ? new RegExp(config.include) : null;
 
@@ -72,14 +75,15 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
       columns.push(c.name);
     }
 
-    structs.push(`export class ${className}Table extends _Global {`);
+    structs.push(`export class ${className}Table${config.globalFilename ? ' extends _Global' : ''} {`);
     structs.push(`  static columns = ${JSON.stringify(columns)};`);
     structs.push(...props);
     structs.push('}');
     structs.push('');
 
-    if (!await fileExists(outputFilename)) {
-      const ts: (string | null)[] = [
+    // model class
+    await notExistsPut(outputFilename, () => {
+      return [
         `import { model } from '${zenormName}';`,
         `import { ${className}Table } from './${config.tablesFilename}';`,
         '',
@@ -91,32 +95,53 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
         `export default class ${className} extends ${className}Table {`,
         `}`,
         '',
-      ];
-      await fs.writeFile(outputFilename, ts.filter(i => i !== null).join('\n'));
-    }
+      ].filter(i => i !== null).join('\n');
+    });
 
-    models.push([name, className, pkType]);
+    models.push({ name, className, pkType });
   }
 
   const tablesFilename = path.join(outputDir, config.tablesFilename + '.ts');
   console.log(`write tables file: ${tablesFilename}`);
-  await fs.writeFile(tablesFilename, structs.join('\n'));
+  await fs.writeFile(tablesFilename, structs.filter(i => i !== null).join('\n'));
 
   const repositories: string[] = [
     ...remark,
-    `import { QueryParam, createRepositoryQuery } from '${zenormName}';`,
-    ...models.map(([name, className]) => `import _${className} from './${name}';`),
-    '',
+    `import {${config.generateRepositories ? `QueryParam, ` : ''} createRepositoryQuery } from '${zenormName}';`,
+    ...models.map(({ name, className }) => `import _${className} from './${name}';`),
   ];
 
+  // 绑定静态 Query
+  if (config.bindQuery) {
+    const [v, p] = config.bindQuery.split('@', 2);
+    repositories.push(`import { ${v} as _query } from '${p}';`);
+  }
+
   // static
-  models.forEach(([name, className, pkType]) => {
+  models.forEach(({ className, pkType }) => {
     repositories.push(
+      '',
       `export class ${className} extends _${className} {`,
+      `  /** 使用指定 Query 对象查询 ${className}Repository */`,
       `  static query = createRepositoryQuery<${className}, ${pkType}>(${className});`,
-      `}`,
-      ''
     );
+    if (config.bindQuery) {
+      repositories.push(`  /** Query 绑定的 ${className}Repository */`);
+      repositories.push(`  static repository = ${className}.query(_query);`);
+      repositories.push(...[
+        'of',
+        'find',
+        'findByPk',
+        'getByPk',
+        'create',
+        'createAndGet',
+      ].map(i => `  static ${i}: typeof ${className}.repository.${i} = ${className}.repository.${i}.bind(${className}.repository);`));
+      // 实例方法
+      repositories.push(`  save() { return ${className}.repository.save(this); }`);
+      repositories.push(`  update(data: Partial<${className}>) { return ${className}.repository.update(this, data); }`);
+      repositories.push(`  delete() { return ${className}.repository.delete(this); }`);
+    }
+    repositories.push('}');
   });
 
   // Repositories
@@ -124,7 +149,7 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
     repositories.push(
       `export class Repositories {`,
       `  constructor(private _query: QueryParam) {}`,
-      ...models.map(([name, className]) => `  get ${className}Repository() { return ${className}.query(this._query); }`),
+      ...models.map(({ className }) => `  get ${className}Repository() { return ${className}.query(this._query); }`),
       `}`,
       '',
     );
@@ -148,11 +173,13 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
   await fs.writeFile(repositoriesFilename, repositories.join('\n'));
 
   // 生成 global.ts
-  const globalFilename = path.join(outputDir, config.globalFilename + '.ts');
-  await notExistsPut(globalFilename, () => {
-    console.log(`write file: ${globalFilename}`);
-    return 'export default class Global {}';
-  });
+  if (config.globalFilename) {
+    const globalFilename = path.join(outputDir, config.globalFilename + '.ts');
+    await notExistsPut(globalFilename, () => {
+      console.log(`write file: ${globalFilename}`);
+      return 'export default class Global {}';
+    });
+  }
 
   // 生成 index.ts
   const indexFilename = path.join(outputDir, 'index.ts');
