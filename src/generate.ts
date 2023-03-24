@@ -107,7 +107,7 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
 
   const repositories: string[] = [
     ...remark,
-    `import {${config.generateRepositories ? `QueryParam, ` : ''} createRepositoryQuery } from '${zenormName}';`,
+    `import { ${config.generateRepositories ? `QueryParam, ` : ''}createRepositoryQuery } from '${zenormName}';`,
     ...models.map(({ name, className }) => `import _${className} from './${name}';`),
   ];
 
@@ -133,12 +133,17 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
         'find',
         'findByPk',
         'getByPk',
+        'count',
+        'exists',
         'create',
         'createAndGet',
       ].map(i => `  static ${i}: typeof ${className}.repository.${i} = ${className}.repository.${i}.bind(${className}.repository);`));
       // 实例方法
+      repositories.push(`  /** 保存当前实例数据 */`);
       repositories.push(`  save() { return ${className}.repository.save(this); }`);
+      repositories.push(`  /** 更新当前实例数据 */`);
       repositories.push(`  update(data: Partial<${className}>) { return ${className}.repository.update(this, data); }`);
+      repositories.push(`  /** 删除当前实例数据 */`);
       repositories.push(`  delete() { return ${className}.repository.delete(this); }`);
     }
     repositories.push('}');
@@ -147,6 +152,7 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
   // Repositories
   if (config.generateRepositories) {
     repositories.push(
+      '',
       `export class Repositories {`,
       `  constructor(private _query: QueryParam) {}`,
       ...models.map(({ className }) => `  get ${className}Repository() { return ${className}.query(this._query); }`),

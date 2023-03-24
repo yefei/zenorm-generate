@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2023-3-24
+- fix: 生成格式少个空格和空行
+- update: bindQuery 增加 count 和 exists
+- 补充注释说明
+
 ## [1.1.0] - 2023-3-24
 - 新增: 绑定静态 Query
 
