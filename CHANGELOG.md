@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.3.0] - 2023-3-25
+- update: bindQuery 增加 save, update, delete
+
 ## [1.2.0] - 2023-3-24
 - update: bindQuery 改为函数形式
 

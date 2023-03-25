@@ -144,6 +144,9 @@ export async function generate(tables: AsyncGenerator<TabelDescribe>, cfg?: Gene
         'exists',
         'create',
         'createAndGet',
+        'save',
+        'update',
+        'delete',
       ].map(i => `  static ${i}: typeof ${className}.repository.${i} = ${className}.repository.${i}.bind(${className}.repository);`));
       // 实例方法
       repositories.push(`  /** 保存当前实例数据 */`);
